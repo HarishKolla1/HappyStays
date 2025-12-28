@@ -1,0 +1,113 @@
+import { usePlaces } from '../../hooks';
+import Spinner from '@/components/ui/Spinner';
+import PlaceCard from '@/components/ui/PlaceCard';
+import CategoryFilter from '@/components/ui/CategoryFilter';
+import AdvancedFilter from '@/components/ui/AdvancedFilter';
+import { useCallback, useState } from 'react';
+import { toast } from 'react-toastify';
+
+const IndexPage = () => {
+  const allPlaces = usePlaces();
+  const { places, loading } = allPlaces;
+
+  if (loading) {
+    return <Spinner />;
+  }
+
+  const [filters, setFilters] = useState({
+    category: null,
+    priceRange: [0, 1000],
+    rooms: 1,
+    propertyType: [],
+    amenities: [],
+  });
+
+  const handleCategoryChange = (category) => {
+    setFilters({ ...filters, category });
+  };
+
+  const handleFilterChange = (newFilters) => {
+    setFilters({ ...filters, ...newFilters });
+  };
+
+  const handleSavePreferences = useCallback((preferences) => {
+    // Save to localStorage for now, can be extended to save to backend
+    localStorage.setItem('searchPreferences', JSON.stringify(preferences));
+    toast.success('Search preferences saved successfully!');
+  }, []);
+
+  // Filter places based on current filters
+  const filteredPlaces = places.filter(place => {
+    if (filters.category && place.category !== filters.category) return false;
+    if (place.price < filters.priceRange[0] || place.price > filters.priceRange[1]) return false;
+    if (filters.rooms && place.numberOfRooms !== filters.rooms) return false;
+    if (filters.propertyType.length && !filters.propertyType.includes(place.propertyType)) return false;
+    if (filters.amenities.length && !filters.amenities.every(a => place.amenities.includes(a))) return false;
+    return true;
+  });
+
+  return (
+    <div className="min-h-screen">
+      <div className="sticky top-0 z-10 bg-white py-4 shadow-sm">
+        <CategoryFilter onCategoryChange={handleCategoryChange} />
+        <div className="flex justify-end px-4">
+          <AdvancedFilter 
+            onFilterChange={handleFilterChange}
+            onSavePreferences={handleSavePreferences}
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 justify-items-center py-8 px-4 md:grid-cols-2 md:gap-0 lg:grid-cols-3 lg:gap-2 xl:grid-cols-4 xl:gap-10">
+        {filteredPlaces.length > 0 ? (
+          filteredPlaces.map((place) => <PlaceCard place={place} key={place._id} />)
+        ) : (
+          <div className="absolute left-1/2 right-1/2 top-40 flex w-full -translate-x-1/2 transform flex-col p-10 md:w-1/2">
+            <h1 className="text-3xl font-semibold">No results found!</h1>
+            <p className="text-lg font-semibold">
+              Try adjusting your filters or search criteria.
+            </p>
+            <button className="mt-4 w-32 rounded-full bg-primary p-2 text-white">
+              <a href="/" className="flex items-center justify-center gap-1">
+                Reset Filters
+              </a>
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+        places.map((place) => <PlaceCard place={place} key={place._id} />)
+      ) : (
+        <div className="absolute left-1/2 right-1/2 top-40 flex  w-full -translate-x-1/2 transform flex-col p-10  md:w-1/2">
+          <h1 className="text-3xl font-semibold">Result not found!</h1>
+          <p className="text-lg font-semibold">
+            Sorry, we couldn&#39;t find the place you&#39;re looking for.
+          </p>
+          <button className="mt-4 w-32 rounded-full bg-primary p-2 text-white">
+            <a href="/" className="flex items-center justify-center gap-1">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-5 w-5"
+              >
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+              </svg>
+              Go back
+            </a>
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default IndexPage;
