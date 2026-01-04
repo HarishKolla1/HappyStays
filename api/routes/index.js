@@ -1,8 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
-
+const uploadToS3 = require('../middlewares/uploadToS3');
+const axios = require('axios');
+const { PutObjectCommand } = require('@aws-sdk/client-s3');
+const s3 = require('../config/s3');
 // multer
 const upload = multer({ dest: '/tmp' });
 
@@ -17,40 +19,45 @@ router.get('/', (req, res) => {
 router.post('/upload-by-link', async (req, res) => {
   try {
     const { link } = req.body;
-    let result = await cloudinary.uploader.upload(link, {
-      folder: 'HappyStays/Places',
-    });
-    res.json(result.secure_url);
+
+    const response = await axios.get(link, { responseType: 'arraybuffer' });
+    const buffer = Buffer.from(response.data, 'binary');
+
+    const key = `places/${Date.now()}.jpg`;
+
+    await s3.send(new PutObjectCommand({
+      Bucket: process.env.AWS_BUCKET_NAME,
+      Key: key,
+      Body: buffer,
+      ContentType: 'image/jpeg',
+      ACL: 'public-read',
+    }));
+
+    const imageUrl = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
+
+    res.json(imageUrl);
   } catch (error) {
-    console.log(error);
-    res.status(500).json({
-      message: 'Internal server error',
-    });
+    console.error(error);
+    res.status(500).json({ message: 'Upload by link failed' });
   }
 });
-
 // Route to upload images from local device (supports up to 100 photos)
-router.post('/upload', upload.array('photos', 100), async (req, res) => {
-  try {
-    let imageArray = [];
-
-    for (let index = 0; index < req.files.length; index++) {
-      let { path } = req.files[index];
-      let result = await cloudinary.uploader.upload(path, {
-        folder: 'HappyStays/Places',
-      });
-      imageArray.push(result.secure_url);
+router.post(
+  '/upload',
+  (req, res, next) => {
+    req.uploadFolder = 'places';
+    next();
+  },
+  uploadToS3.array('photos', 10),
+  async (req, res) => {
+    try {
+      const imageUrls = req.files.map(file => file.location);
+      res.status(200).json(imageUrls);
+    } catch (error) {
+      res.status(500).json({ message: 'Upload failed' });
     }
-
-    res.status(200).json(imageArray);
-  } catch (error) {
-    console.log('Error: ', error);
-    res.status(500).json({
-      error,
-      message: 'Internal server error',
-    });
   }
-});
+);
 
 
 // Mount sub-routers

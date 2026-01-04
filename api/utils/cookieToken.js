@@ -6,8 +6,8 @@ const cookieToken = (user, res) => {
             Date.now() + process.env.COOKIE_TIME * 24 * 60 * 60 * 1000
         ),
         httpOnly: true, // makes the token available only to backend
-        secure: true,   // Only send over HTTPS
-        sameSite: 'none' // Allow cross-origin requests
+        secure: process.env.NODE_ENV === 'production',   // Only send over HTTPS in production
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax' // Allow cross-origin requests in production
     };
 
 
