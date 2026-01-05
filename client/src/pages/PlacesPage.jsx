@@ -19,10 +19,21 @@ const PlacesPage = () => {
         setLoading(false);
       } catch (error) {
         console.log(error);
+        setLoading(false);
       }
     };
     getPlaces();
   }, []);
+
+  const handleDeletePlace = async (placeId) => {
+    try {
+      await axiosInstance.delete(`places/${placeId}`);
+      setPlaces(places.filter(place => place._id !== placeId));
+    } catch (error) {
+      console.log('Error deleting place:', error);
+      alert('Failed to delete place. Please try again.');
+    }
+  };
 
   if (loading) {
     return <Spinner />;
@@ -55,7 +66,7 @@ const PlacesPage = () => {
       </div>
       <div className="mx-4 mt-4">
         {places.length > 0 &&
-          places.map((place) => <InfoCard place={place} key={place._id} />)}
+          places.map((place) => <InfoCard place={place} key={place._id} onDelete={handleDeletePlace} />)}
       </div>
     </div>
   );

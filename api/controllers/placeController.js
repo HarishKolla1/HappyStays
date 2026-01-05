@@ -1,4 +1,5 @@
 const Place = require('../models/Place');
+const sendEmail = require('../utils/emailUtils');
 
 // Adds a place in the DB
 exports.addPlace = async (req, res) => {
@@ -28,6 +29,20 @@ exports.addPlace = async (req, res) => {
     res.status(200).json({
       place,
     });
+
+    // Send notification email to owner (fire-and-forget)
+    (async () => {
+      try {
+        const message = `Hi ${userData.name},\n\nGreat! Your accommodation '${title}' has been successfully listed on HappyStays.\n\nLocation: ${address}\nPrice: ₹${price}/night\nMax Guests: ${maxGuests}\n\nYour place is now visible to guests. Start receiving bookings!\n\nRegards,\nHappyStays Team`;
+        await sendEmail({
+          email: userData.email,
+          subject: `Accommodation Listed: ${title}`,
+          message,
+        }).catch(err => console.log('Failed to send accommodation listing email:', err));
+      } catch (err) {
+        console.log('Error sending accommodation listing email:', err);
+      }
+    })();
   } catch (err) {
     res.status(500).json({
       message: 'Internal server error',
@@ -141,4 +156,51 @@ exports.searchPlaces = async (req, res) => {
       message: 'Internal serever error 1',
     });
   }
-}
+};
+
+// Deletes a place (only by the owner)
+exports.deletePlace = async (req, res) => {
+  try {
+    const userData = req.user;
+    const userId = userData.id;
+    const { id } = req.params;
+
+    const place = await Place.findById(id);
+    if (!place) {
+      return res.status(404).json({
+        message: 'Place not found',
+      });
+    }
+
+    if (userId !== place.owner.toString()) {
+      return res.status(403).json({
+        message: 'You are not authorized to delete this place',
+      });
+    }
+
+    const placeTitle = place.title;
+    await Place.findByIdAndDelete(id);
+    res.status(200).json({
+      message: 'Place deleted successfully',
+    });
+
+    // Send notification email to owner (fire-and-forget)
+    (async () => {
+      try {
+        const message = `Hi ${userData.name},\n\nYour accommodation '${placeTitle}' has been successfully removed from HappyStays.\n\nIf you'd like to list another property, you can always add a new accommodation anytime.\n\nRegards,\nHappyStays Team`;
+        await sendEmail({
+          email: userData.email,
+          subject: `Accommodation Removed: ${placeTitle}`,
+          message,
+        }).catch(err => console.log('Failed to send accommodation deletion email:', err));
+      } catch (err) {
+        console.log('Error sending accommodation deletion email:', err);
+      }
+    })();
+  } catch (err) {
+    res.status(500).json({
+      message: 'Internal server error',
+      error: err,
+    });
+  }
+};

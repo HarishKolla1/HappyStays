@@ -20,46 +20,53 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import { getItemFromLocalStorage } from './utils';
 import NotFoundPage from './pages/NotFoundPage';
 import AboutPage from './pages/AboutPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
+import VerifyEmailPage from './pages/VerifyEmailPage';
 
 function App() {
-  // Initialize authentication token from local storage on app load
-  useEffect(() => {
-    axiosInstance.defaults.headers.common[
-      'Authorization'
-    ] = `Bearer ${getItemFromLocalStorage('token')}`;
-  }, []);
+    // Initialize authentication token from local storage on app load
+    useEffect(() => {
+        axiosInstance.defaults.headers.common[
+            'Authorization'
+        ] = `Bearer ${getItemFromLocalStorage('token')}`;
+    }, []);
 
-  return (
-    // Wrap app with Google OAuth provider for social login
-    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
-      {/* UserProvider manages user authentication state */}
-      <UserProvider>
-        {/* PlaceProvider manages places data */}
-        <PlaceProvider>
-          <Routes>
-            <Route path="/" element={<Layout />}>
-              <Route index element={<IndexPage />} />
-              <Route path="/about" element={<AboutPage />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/register" element={<RegisterPage />} />
-              <Route path="/account" element={<ProfilePage />} />
-              <Route path="/account/places" element={<PlacesPage />} />
-              <Route path="/account/places/new" element={<PlacesFormPage />} />
-              <Route path="/account/places/:id" element={<PlacesFormPage />} />
-              <Route path="/place/:id" element={<PlacePage />} />
-              <Route path="/account/bookings" element={<BookingsPage />} />
-              <Route
-                path="/account/bookings/:id"
-                element={<SingleBookedPlace />}
-              />
-              <Route path="*" element={<NotFoundPage />} />
-            </Route>
-          </Routes>
-          <ToastContainer autoClose={2000} transition={Slide} />
-        </PlaceProvider>
-      </UserProvider>
-    </GoogleOAuthProvider>
-  );
+    return (
+        // Wrap app with Google OAuth provider for social login
+        <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
+            {/* UserProvider manages user authentication state */}
+            <UserProvider>
+                {/* PlaceProvider manages places data */}
+                <PlaceProvider>
+                    <Routes>
+                        <Route path="/" element={<Layout />}>
+                            <Route index element={<IndexPage />} />
+                            <Route path="/about" element={<AboutPage />} />
+                            <Route path="/login" element={<LoginPage />} />
+                            <Route path="/register" element={<RegisterPage />} />
+                            <Route path="/verify-email/:token" element={<VerifyEmailPage />} />
+                            <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                            <Route path="/password/reset/:token" element={<ResetPasswordPage />} />
+                            <Route path="/account" element={<ProfilePage />} />
+                            <Route path="/account/places" element={<PlacesPage />} />
+                            <Route path="/account/places/new" element={<PlacesFormPage />} />
+                            <Route path="/account/places/:id" element={<PlacesFormPage />} />
+                            <Route path="/place/:id" element={<PlacePage />} />
+                            <Route path="/account/bookings" element={<BookingsPage />} />
+                            <Route
+                                path="/account/bookings/:id"
+                                element={<SingleBookedPlace />}
+                            />
+                            <Route path="*" element={<NotFoundPage />} />
+
+                        </Route>
+                    </Routes>
+                    <ToastContainer autoClose={2000} transition={Slide} />
+                </PlaceProvider>
+            </UserProvider>
+        </GoogleOAuthProvider>
+    );
 }
 
 export default App;

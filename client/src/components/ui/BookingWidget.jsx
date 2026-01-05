@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { differenceInDays } from 'date-fns';
 import { toast } from 'react-toastify';
-
 import { useAuth } from '../../../hooks';
 import axiosInstance from '@/utils/axios';
 import DatePickerWithRange from './DatePickerWithRange';
@@ -15,51 +14,54 @@ const BookingWidget = ({ place }) => {
     phone: '',
   });
   const [redirect, setRedirect] = useState('');
+  const [bookedDates, setBookedDates] = useState([]);
   const { user } = useAuth();
 
   const { noOfGuests, name, phone } = bookingData;
   const { _id: id, price } = place;
 
+  // Prefill user data
   useEffect(() => {
     if (user) {
-      setBookingData({ ...bookingData, name: user.name });
+      setBookingData((prev) => ({ ...prev, name: user.name }));
     }
   }, [user]);
 
+  // Fetch Booked Dates
+  useEffect(() => {
+    const fetchBookedDates = async () => {
+      try {
+        const response = await axiosInstance.get(`/bookings/place/${id}`);
+        setBookedDates(response.data.bookings);
+      } catch (error) {
+        console.log('Error fetching booked dates:', error);
+      }
+    };
+    if (id) fetchBookedDates();
+  }, [id]);
+
+  // Calculate Nights
   const numberOfNights =
-    dateRange.from && dateRange.to
+    dateRange?.from && dateRange?.to
       ? differenceInDays(
-        new Date(dateRange.to).setHours(0, 0, 0, 0),
-        new Date(dateRange.from).setHours(0, 0, 0, 0),
-      )
+          new Date(dateRange.to).setHours(0, 0, 0, 0),
+          new Date(dateRange.from).setHours(0, 0, 0, 0)
+        )
       : 0;
 
-  // handle booking form
   const handleBookingData = (e) => {
-    setBookingData({
-      ...bookingData,
-      [e.target.name]: e.target.value,
-    });
+    setBookingData({ ...bookingData, [e.target.name]: e.target.value });
   };
 
   const handleBooking = async () => {
-    // User must be signed in to book place
-    if (!user) {
-      return setRedirect(`/login`);
-    }
+    if (!user) return setRedirect(`/login`);
 
-    // BOOKING DATA VALIDATION
-    if (numberOfNights < 1) {
-      return toast.error('Please select valid dates');
-    } else if (noOfGuests < 1) {
-      return toast.error("No. of guests can't be less than 1");
-    } else if (noOfGuests > place.maxGuests) {
-      return toast.error(`Allowed max. no. of guests: ${place.maxGuests}`);
-    } else if (name.trim() === '') {
-      return toast.error("Name can't be empty");
-    } else if (phone.trim() === '') {
-      return toast.error("Phone can't be empty");
-    }
+    // Validations
+    if (numberOfNights < 1) return toast.error('Please select valid dates');
+    if (noOfGuests < 1) return toast.error("Guests can't be less than 1");
+    if (noOfGuests > place.maxGuests) return toast.error(`Max guests allowed: ${place.maxGuests}`);
+    if (name.trim() === '') return toast.error("Name required");
+    if (phone.trim() === '') return toast.error("Phone required");
 
     try {
       const response = await axiosInstance.post('/bookings', {
@@ -73,18 +75,14 @@ const BookingWidget = ({ place }) => {
       });
 
       const bookingId = response.data.booking._id;
-
       setRedirect(`/account/bookings/${bookingId}`);
       toast('Congratulations! Enjoy your trip.');
     } catch (error) {
-      toast.error('Something went wrong!');
-      console.log('Error: ', error);
+      toast.error(error.response?.data?.message || 'Something went wrong!');
     }
   };
 
-  if (redirect) {
-    return <Navigate to={redirect} />;
-  }
+  if (redirect) return <Navigate to={redirect} />;
 
   return (
     <div className="sticky top-32 rounded-2xl border border-gray-200 bg-white p-6 shadow-2xl transition-all">
@@ -93,10 +91,29 @@ const BookingWidget = ({ place }) => {
       </div>
       <div className="mt-6 rounded-2xl border border-gray-300">
         <div className="flex w-full ">
-          <DatePickerWithRange setDateRange={setDateRange} />
+          {/* We pass the bookedDates array here */}
+          <DatePickerWithRange 
+            setDateRange={setDateRange} 
+            disabledDates={bookedDates} 
+          />
         </div>
+        
+        {/* Helper text area */}
+        <div className="px-4 py-2 text-xs text-gray-500 border-t border-gray-300">
+          <span className="flex items-center gap-1">
+            <span className="w-2 h-2 bg-gray-300 rounded-full"></span>
+            Unavailable dates are blocked
+          </span>
+          {numberOfNights > 0 && (
+            <span className="flex items-center gap-1 mt-1 text-green-600">
+              <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+              {numberOfNights} nights selected
+            </span>
+          )}
+        </div>
+
         <div className="border-t border-gray-300 py-4 px-4">
-          <label className="mb-1 block text-sm font-semibold text-gray-600">Number of guests: </label>
+          <label className="mb-1 block text-sm font-semibold text-gray-600">Number of guests:</label>
           <input
             type="number"
             name="noOfGuests"
@@ -110,7 +127,7 @@ const BookingWidget = ({ place }) => {
         </div>
         {numberOfNights > 0 && (
           <div className="border-t border-gray-300 py-4 px-4">
-            <label className="mb-1 block text-sm font-semibold text-gray-600">Your full name: </label>
+            <label className="mb-1 block text-sm font-semibold text-gray-600">Your full name:</label>
             <input
               type="text"
               name="name"
@@ -118,7 +135,7 @@ const BookingWidget = ({ place }) => {
               onChange={handleBookingData}
               className="mb-3 w-full rounded-lg border border-gray-300 p-2 focus:border-primary focus:outline-none"
             />
-            <label className="mb-1 block text-sm font-semibold text-gray-600">Phone number: </label>
+            <label className="mb-1 block text-sm font-semibold text-gray-600">Phone number:</label>
             <input
               type="tel"
               name="phone"

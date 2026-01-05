@@ -25,6 +25,19 @@ const BookingsPage = () => {
     getBookings();
   }, []);
 
+  const handleCancel = async (e, bookingId) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!window.confirm('Are you sure you want to cancel this booking?')) return;
+    try {
+      await axiosInstance.delete(`/bookings/${bookingId}`);
+      setBookings(bookings.filter(b => b._id !== bookingId));
+    } catch (err) {
+      console.log('Cancel error:', err);
+      alert('Failed to cancel booking. Please try again.');
+    }
+  };
+
   if (loading) return <Spinner />;
 
   return (
@@ -35,7 +48,7 @@ const BookingsPage = () => {
           bookings.map((booking) => (
             <Link
               to={`/account/bookings/${booking._id}`}
-              className="mx-4 my-8 flex h-28 gap-4 overflow-hidden rounded-2xl bg-gray-200 md:h-40 lg:mx-0"
+              className="mx-4 my-8 relative flex h-28 gap-4 overflow-hidden rounded-2xl bg-gray-200 md:h-40 lg:mx-0"
               key={booking._id}
             >
               <div className="w-2/6 md:w-1/6">
@@ -78,6 +91,15 @@ const BookingsPage = () => {
                   </div>
                 </div>
               </div>
+              <button
+                onClick={(e) => handleCancel(e, booking._id)}
+                className="absolute right-3 top-3 rounded-full bg-red-500 p-2 text-white hover:bg-red-600"
+                title="Cancel booking"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-4 w-4">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </Link>
           ))
         ) : (

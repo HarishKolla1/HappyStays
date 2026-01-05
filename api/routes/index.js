@@ -6,7 +6,9 @@ const axios = require('axios');
 const { PutObjectCommand } = require('@aws-sdk/client-s3');
 const s3 = require('../config/s3');
 // multer
-const upload = multer({ dest: '/tmp' });
+// Use memoryStorage so file.buffer is available for S3
+const storage = multer.memoryStorage();
+const upload = multer({ storage: storage });
 
 // Basic health check route
 router.get('/', (req, res) => {
@@ -30,7 +32,6 @@ router.post('/upload-by-link', async (req, res) => {
       Key: key,
       Body: buffer,
       ContentType: 'image/jpeg',
-      ACL: 'public-read',
     }));
 
     const imageUrl = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
@@ -42,22 +43,41 @@ router.post('/upload-by-link', async (req, res) => {
   }
 });
 // Route to upload images from local device (supports up to 100 photos)
-router.post(
-  '/upload',
-  (req, res, next) => {
-    req.uploadFolder = 'places';
-    next();
-  },
-  uploadToS3.array('photos', 10),
-  async (req, res) => {
-    try {
-      const imageUrls = req.files.map(file => file.location);
-      res.status(200).json(imageUrls);
-    } catch (error) {
-      res.status(500).json({ message: 'Upload failed' });
+router.post("/upload", upload.array("photos", 10), async (req, res) => {
+  try {
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ message: "No files uploaded" });
     }
+
+    console.log("Files received by backend:", req.files.map(f => f.originalname));
+
+    const uploadedUrls = [];
+
+    for (const file of req.files) {
+      const cleanName= file.originalname.replace(/\s+/g, '-').replace(/[^a-zA-Z0-9.\-_]/g, ''); // Replace spaces with underscores
+      const key = `places/${Date.now()}-${cleanName}`;
+
+      await s3.send(
+        new PutObjectCommand({
+          Bucket: process.env.AWS_BUCKET_NAME,
+          Key: key,
+          Body: file.buffer, // buffer from multer memory storage
+          ContentType: file.mimetype,
+          ContentLength: file.size,
+        })
+      );
+
+      const fileUrl = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
+      uploadedUrls.push(fileUrl);
+    }
+
+    console.log("Uploaded file URLs:", uploadedUrls);
+    res.status(200).json(uploadedUrls);
+  } catch (err) {
+    console.error("S3 upload error:", err);
+    res.status(500).json({ message: "Upload failed", error: err.message });
   }
-);
+});
 
 
 // Mount sub-routers

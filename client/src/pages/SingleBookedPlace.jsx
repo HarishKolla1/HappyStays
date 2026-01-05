@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 
 import AccountNav from '../components/ui/AccountNav';
 import AddressLink from '../components/ui/AddressLink';
@@ -12,6 +12,7 @@ const SingleBookedPlace = () => {
   const { id } = useParams();
   const [booking, setBooking] = useState({});
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const getBookings = async () => {
     try {
@@ -34,6 +35,17 @@ const SingleBookedPlace = () => {
   useEffect(() => {
     getBookings();
   }, [id]);
+
+  const handleCancel = async () => {
+    if (!window.confirm('Are you sure you want to cancel this booking?')) return;
+    try {
+      await axiosInstance.delete(`/bookings/${id}`);
+      navigate('/account/bookings');
+    } catch (err) {
+      console.log('Cancel error:', err);
+      alert('Failed to cancel booking. Please try again.');
+    }
+  };
 
   if (loading) {
     return <Spinner />;
@@ -61,6 +73,14 @@ const SingleBookedPlace = () => {
               <div className="hidden md:block">Total price</div>
               <div className="flex justify-center text-3xl">
                 <span>₹{booking?.price}</span>
+              </div>
+              <div className="mt-3 flex justify-center">
+                <button
+                  onClick={handleCancel}
+                  className="rounded bg-red-500 px-4 py-2 text-white hover:bg-red-600"
+                >
+                  Cancel booking
+                </button>
               </div>
             </div>
           </div>

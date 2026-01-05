@@ -4,6 +4,8 @@ const bcrypt = require('bcryptjs')
 const cloudinary = require('cloudinary').v2;
 const crypto = require('crypto');
 const sendEmail = require('../utils/emailUtils');
+const uploadToS3 = require('../middlewares/uploadToS3');
+const uploadProfileToS3 = require('../middlewares/uploadProfileToS3');
 
 
 // Register/SignUp user
@@ -163,17 +165,28 @@ exports.googleLogin = async (req, res) => {
 }
 
 // Upload picture
+// Upload picture
 exports.uploadPicture = [
   (req, res, next) => {
-    req.uploadFolder = 'users';
+    console.log('Step 1: Upload middleware invoked');
+    // We don't need req.uploadFolder anymore because we hardcoded 'users/' in the new middleware
     next();
   },
-  uploadToS3.single('picture'),
+  
+  // USE THE NEW MIDDLEWARE HERE
+  uploadProfileToS3.single('picture'), 
+  
   async (req, res) => {
     try {
+      if (!req.file) {
+        return res.status(400).json({ message: 'No file uploaded' });
+      }
+      // Since we used multer-s3, .location will now exist!
+      console.log('Success:', req.file.location);
       res.status(200).json(req.file.location);
     } catch (error) {
-      res.status(500).json({ message: 'Upload failed' });
+      console.log('Upload Error:', error);
+      res.status(500).json({ message: 'Upload failed', error: error.message });
     }
   }
 ];
@@ -183,29 +196,43 @@ exports.updateUserDetails = async (req, res) => {
   try {
     const { name, password, email, picture } = req.body
 
+    // Note: Assuming the email passed in body is correct, or better, 
+    // you should get the email/ID from the logged-in user's token (req.user) 
+    // to prevent updating other people's accounts. 
+    // But sticking to your current logic:
     const user = await User.findOne({ email })
 
     if (!user) {
-      return res.status(404), json({
+      return res.status(404).json({
         message: 'User not found'
       })
     }
 
-    // user can update only name, only password,only profile pic or all three
-
-    user.name = name
-    if (picture && !password) {
-      user.picture = picture
-    } else if (password && !picture) {
-      user.password = password
-    } else {
-      user.picture = picture
-      user.password = password
+    // 1. Update Name if provided
+    if (name) {
+        user.name = name;
     }
-    const updatedUser = await user.save()
-    cookieToken(updatedUser, res)
+
+    // 2. Update Picture if provided
+    if (picture) {
+        user.picture = picture;
+    }
+
+    // 3. Update Password ONLY if provided and not empty
+    if (password && password.trim() !== '') {
+        user.password = password;
+        // The pre('save') hook in your model will handle the hashing automatically
+        // because we are modifying the password field.
+    }
+
+    const updatedUser = await user.save();
+    
+    // Send back the new token/user data
+    cookieToken(updatedUser, res);
+
   } catch (error) {
-    res.status(500).json({ message: "Internal server error" }, error)
+    console.log(error);
+    res.status(500).json({ message: "Internal server error", error: error.message });
   }
 }
 

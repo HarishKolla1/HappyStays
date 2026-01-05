@@ -123,13 +123,50 @@ export const useProvideAuth = () => {
             const { data } = await axiosInstance.put('/user/update-user', {
                 name, password, email, picture
             })
-            return data;
+            // Make sure to return data so the frontend 'res.success' check works
+            return { success: true, user: data.user, token: data.token }; 
         } catch (error) {
             console.log(error)
+            return { success: false, message: error.response?.data?.message };
         }
     }
 
 
+    const forgotPassword = async (email) => {
+        try {
+            // Ensure this endpoint matches your backend route (/user/forgot-password)
+            console.log("Forgot password email:", email);
+            const { data } = await axiosInstance.post('/user/forgot-password', { email });
+            console.log("Forgot password response data:", data);
+            return { success: true, message: data.message };
+        } catch (error) {
+            return { 
+                success: false, 
+                message: error.response?.data?.message || 'Something went wrong' 
+            };
+        }
+    };
+
+    const resetPassword = async (token, password) => {
+        try {
+            // Ensure this endpoint matches your backend route (/user/password/reset/:token)
+            const { data } = await axiosInstance.post(`/user/password/reset/${token}`, { password });
+            
+            // Optional: You might want to automatically log the user in here if the backend returns a token
+            if (data.user && data.token) {
+                setUser(data.user);
+                setItemsInLocalStorage('user', data.user);
+                setItemsInLocalStorage('token', data.token);
+            }
+            
+            return { success: true, message: 'Password reset successful' };
+        } catch (error) {
+            return { 
+                success: false, 
+                message: error.response?.data?.message || 'Something went wrong' 
+            };
+        }
+    };
     return {
         user,
         setUser,
@@ -139,7 +176,9 @@ export const useProvideAuth = () => {
         logout,
         loading,
         uploadPicture,
-        updateUser
+        updateUser,
+        forgotPassword,
+        resetPassword
     }
 }
 

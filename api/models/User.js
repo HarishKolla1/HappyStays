@@ -35,7 +35,10 @@ const userSchema = new mongoose.Schema({
 
 // encrypt password before saving it into the DB
 userSchema.pre("save", async function (next) {
-  this.password = await bcrypt.hash(this.password, 10)
+  if (!this.isModified("password")) {
+    return next();
+  }
+  this.password = await bcrypt.hash(this.password, 10);
 })
 
 // create and return jwt token
@@ -47,7 +50,9 @@ userSchema.methods.getJwtToken = function () {
 
 // validate the password
 userSchema.methods.isValidatedPassword = async function (userSentPassword) {
-  return await bcrypt.compare(userSentPassword, this.password)
+  console.log('Comparing passwords:', userSentPassword, this.password);
+  console.log(await bcrypt.compare(userSentPassword, this.password));
+  return await bcrypt.compare(userSentPassword, this.password);
 }
 
 

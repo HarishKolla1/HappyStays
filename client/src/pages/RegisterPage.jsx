@@ -23,12 +23,19 @@ const RegisterPage = () => {
   const handleFormSubmit = async (e) => {
     e.preventDefault();
 
-    const response = await auth.register(formData);
-    if (response.success) {
-      toast.success(response.message);
-      setRedirect(true);
-    } else {
-      toast.error(response.message);
+    try {
+        const response = await auth.register(formData);
+        
+        // Response will now be: { success: true, message: "Please check your email..." }
+        if (response.success) {
+             toast.success(response.message);
+             // Don't redirect to home. Redirect to login or just clear form
+             setRedirect(true); // Ensure this redirects to LOGIN now, not Home
+        } else {
+             toast.error(response.message);
+        }
+    } catch(err) {
+        toast.error("Registration failed");
     }
   };
 
@@ -43,7 +50,7 @@ const RegisterPage = () => {
   };
 
   if (redirect) {
-    return <Navigate to="/" />;
+    return <Navigate to="/login" />;
   }
 
   return (

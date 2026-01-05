@@ -5,9 +5,12 @@ import { GoogleLogin } from '@react-oauth/google';
 
 import ProfilePage from './ProfilePage';
 import { useAuth } from '../../hooks';
+import axios from '../utils/axios';
 
 const LoginPage = () => {
   const [formData, setFormData] = useState({ email: '', password: '' });
+  const [forgotEmail, setForgotEmail] = useState(''); // email for forgot password
+  const [showForgot, setShowForgot] = useState(false); // toggle forgot password form
   const [redirect, setRedirect] = useState(false);
   const auth = useAuth();
 
@@ -18,7 +21,6 @@ const LoginPage = () => {
 
   const handleFormSubmit = async (e) => {
     e.preventDefault();
-
     const response = await auth.login(formData);
     if (response.success) {
       toast.success(response.message);
@@ -38,35 +40,69 @@ const LoginPage = () => {
     }
   };
 
-  if (redirect) {
-    return <Navigate to={'/'} />;
-  }
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    if (!forgotEmail) return toast.error('Please enter your email');
+    
+    // FIX 1: Remove "{ data }" and just use "response"
+    // The hook already unwrapped the data for you!
+    const response = await auth.forgotPassword(forgotEmail);
 
-  if (auth.user) {
-    return <ProfilePage />;
-  }
+    if (response.success) {
+      toast.success(response.message);
+      setShowForgot(false);
+    } else {
+      // FIX 2: Now we handle the error safely without crashing
+      toast.error(response.message);
+    }
+  };
+
+  
+  if (redirect) return <Navigate to={'/'} />;
+  if (auth.user) return <ProfilePage />;
 
   return (
     <div className="mt-4 flex grow items-center justify-around p-4 md:p-0">
       <div className="mb-40">
         <h1 className="mb-4 text-center text-4xl">Login</h1>
-        <form className="mx-auto max-w-md" onSubmit={handleFormSubmit}>
-          <input
-            name="email"
-            type="email"
-            placeholder="your@email.com"
-            value={formData.email}
-            onChange={handleFormData}
-          />
-          <input
-            name="password"
-            type="password"
-            placeholder="password"
-            value={formData.password}
-            onChange={handleFormData}
-          />
-          <button className="primary my-4">Login</button>
-        </form>
+
+        {!showForgot ? (
+          <form className="mx-auto max-w-md" onSubmit={handleFormSubmit}>
+            <input
+              name="email"
+              type="email"
+              placeholder="your@email.com"
+              value={formData.email}
+              onChange={handleFormData}
+            />
+            <input
+              name="password"
+              type="password"
+              placeholder="password"
+              value={formData.password}
+              onChange={handleFormData}
+            />
+            <button className="primary my-4">Login</button>
+
+            <p className="text-right text-sm text-blue-500 cursor-pointer" onClick={() => setShowForgot(true)}>
+              Forgot Password?
+            </p>
+          </form>
+        ) : (
+          <form className="mx-auto max-w-md" onSubmit={handleForgotPassword}>
+            <input
+              type="email"
+              placeholder="Enter your email"
+              value={forgotEmail}
+              onChange={(e) => setForgotEmail(e.target.value)}
+              required
+            />
+            <button className="primary my-4">Send Reset Link</button>
+            <p className="text-right text-sm text-blue-500 cursor-pointer" onClick={() => setShowForgot(false)}>
+              Back to Login
+            </p>
+          </form>
+        )}
 
         <div className="mb-4 flex w-full items-center gap-4">
           <div className="h-0 w-1/2 border-[1px]"></div>
@@ -77,12 +113,8 @@ const LoginPage = () => {
         {/* Google login button */}
         <div className="flex h-[50px] justify-center">
           <GoogleLogin
-            onSuccess={(credentialResponse) => {
-              handleGoogleLogin(credentialResponse.credential);
-            }}
-            onError={() => {
-              console.log('Login Failed');
-            }}
+            onSuccess={(credentialResponse) => handleGoogleLogin(credentialResponse.credential)}
+            onError={() => console.log('Login Failed')}
             text="continue_with"
             width="350"
           />
