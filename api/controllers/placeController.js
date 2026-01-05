@@ -14,6 +14,13 @@ exports.addPlace = async (req, res) => {
       extraInfo,
       maxGuests,
       price,
+      category,
+      propertyType,
+      amenities,
+      numberOfRooms,
+      coordinates,
+      checkIn,   // <--- extracted here
+      checkOut,
     } = req.body;
     const place = await Place.create({
       owner: userData.id,
@@ -25,6 +32,13 @@ exports.addPlace = async (req, res) => {
       extraInfo,
       maxGuests,
       price,
+      category,
+      propertyType,
+      amenities,
+      numberOfRooms,
+      coordinates,
+      checkIn,   // <--- extracted here
+      checkOut,
     });
     res.status(200).json({
       place,
@@ -79,6 +93,13 @@ exports.updatePlace = async (req, res) => {
       extraInfo,
       maxGuests,
       price,
+      category,
+      propertyType,
+      amenities,
+      numberOfRooms,
+      coordinates,
+      checkIn,   // <--- extracted here
+      checkOut,
     } = req.body;
 
     const place = await Place.findById(id);
@@ -92,6 +113,13 @@ exports.updatePlace = async (req, res) => {
         extraInfo,
         maxGuests,
         price,
+        category,
+        propertyType,
+        amenities,
+        numberOfRooms,
+        coordinates,
+        checkIn,   // <--- extracted here
+        checkOut,
       });
       await place.save();
       res.status(200).json({

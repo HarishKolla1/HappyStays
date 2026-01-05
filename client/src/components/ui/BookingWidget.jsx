@@ -100,10 +100,7 @@ const BookingWidget = ({ place }) => {
         
         {/* Helper text area */}
         <div className="px-4 py-2 text-xs text-gray-500 border-t border-gray-300">
-          <span className="flex items-center gap-1">
-            <span className="w-2 h-2 bg-gray-300 rounded-full"></span>
-            Unavailable dates are blocked
-          </span>
+          
           {numberOfNights > 0 && (
             <span className="flex items-center gap-1 mt-1 text-green-600">
               <span className="w-2 h-2 bg-green-500 rounded-full"></span>

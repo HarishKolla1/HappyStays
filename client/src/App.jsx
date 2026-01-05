@@ -23,6 +23,7 @@ import AboutPage from './pages/AboutPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import VerifyEmailPage from './pages/VerifyEmailPage';
+import ExplorePage from './pages/ExplorePage';
 
 function App() {
     // Initialize authentication token from local storage on app load
@@ -42,6 +43,7 @@ function App() {
                     <Routes>
                         <Route path="/" element={<Layout />}>
                             <Route index element={<IndexPage />} />
+                            <Route path="/explore" element={<ExplorePage />} />
                             <Route path="/about" element={<AboutPage />} />
                             <Route path="/login" element={<LoginPage />} />
                             <Route path="/register" element={<RegisterPage />} />

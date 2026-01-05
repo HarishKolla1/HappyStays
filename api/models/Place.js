@@ -22,6 +22,12 @@ const placeSchema = new mongoose.Schema({
   extraInfo: {
     type: String,
   },
+  checkIn: {
+    type: String, 
+  },
+  checkOut: {
+    type: String,
+  },
   maxGuests: {
     type: Number,
   },

@@ -1,7 +1,7 @@
 {
-  "name": "airbnb-api",
+  "name": "backend",
   "version": "1.0.0",
-  "description": "API for airbnb clone app",
+  "description": "backend for happystay",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
@@ -10,7 +10,7 @@
     "api",
     "backend"
   ],
-  "author": "rahul4019",
+  "author": "Harish",
   "license": "ISC",
   "dependencies": {
     "@aws-sdk/client-s3": "^3.962.0",

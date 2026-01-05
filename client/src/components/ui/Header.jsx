@@ -22,8 +22,8 @@ export const Header = () => {
   useEffect(() => {
     window.addEventListener('scroll', handleScroll);
 
-    // hide searchbar based on url
-    if (location.pathname === '/') {
+    // CHANGE: Show searchbar on Home ('/') AND Explore ('/explore')
+    if (location.pathname === '/' || location.pathname === '/explore') {
       setShowSearchBar(true);
     } else {
       setShowSearchBar(false);

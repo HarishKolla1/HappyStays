@@ -2,7 +2,6 @@ import { usePlaces } from '../../hooks';
 import Spinner from '@/components/ui/Spinner';
 import PlaceCard from '@/components/ui/PlaceCard';
 import Hero from '@/components/ui/Hero';
-import Services from '@/components/ui/Services';
 
 const IndexPage = () => {
   const allPlaces = usePlaces();
@@ -11,9 +10,9 @@ const IndexPage = () => {
   return (
     <div className="flex flex-col">
       <Hero />
-      <Services />
+      
 
-      <section id="explore" className="container mx-auto px-4 py-16">
+      {/* <section id="explore" className="container mx-auto px-4 py-16">
         <h2 className="mb-8 text-center text-3xl font-bold text-gray-900 sm:text-left">
           Explore Top Destinations
         </h2>
@@ -54,7 +53,7 @@ const IndexPage = () => {
             )}
           </div>
         )}
-      </section>
+      </section> */}
     </div>
   );
 };

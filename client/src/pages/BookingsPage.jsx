@@ -1,9 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { differenceInCalendarDays, format } from 'date-fns';
+import { 
+  Calendar, CreditCard, Moon, ArrowRight, 
+  MapPin, AlertCircle, Trash2 
+} from 'lucide-react';
 
 import AccountNav from '@/components/ui/AccountNav';
 import PlaceImg from '@/components/ui/PlaceImg';
-import BookingDates from '@/components/ui/BookingDates';
 import Spinner from '@/components/ui/Spinner';
 import axiosInstance from '@/utils/axios';
 
@@ -16,9 +20,9 @@ const BookingsPage = () => {
       try {
         const { data } = await axiosInstance.get('/bookings');
         setBookings(data.booking);
-        setLoading(false);
       } catch (error) {
-        console.log('Error: ', error);
+        console.error('Error fetching bookings:', error);
+      } finally {
         setLoading(false);
       }
     };
@@ -26,14 +30,16 @@ const BookingsPage = () => {
   }, []);
 
   const handleCancel = async (e, bookingId) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!window.confirm('Are you sure you want to cancel this booking?')) return;
+    e.preventDefault(); 
+    e.stopPropagation(); 
+    
+    if (!window.confirm('Are you sure you want to cancel this booking? This action cannot be undone.')) return;
+    
     try {
       await axiosInstance.delete(`/bookings/${bookingId}`);
-      setBookings(bookings.filter(b => b._id !== bookingId));
+      setBookings(prev => prev.filter(b => b._id !== bookingId));
     } catch (err) {
-      console.log('Cancel error:', err);
+      console.error('Cancel error:', err);
       alert('Failed to cancel booking. Please try again.');
     }
   };
@@ -41,84 +47,110 @@ const BookingsPage = () => {
   if (loading) return <Spinner />;
 
   return (
-    <div className="flex flex-col items-center">
+    <div className="container mx-auto px-4 pb-12 max-w-5xl">
       <AccountNav />
-      <div>
-        {bookings?.length > 0 ? (
-          bookings.map((booking) => (
-            <Link
-              to={`/account/bookings/${booking._id}`}
-              className="mx-4 my-8 relative flex h-28 gap-4 overflow-hidden rounded-2xl bg-gray-200 md:h-40 lg:mx-0"
-              key={booking._id}
-            >
-              <div className="w-2/6 md:w-1/6">
-                {booking?.place?.photos[0] && (
-                  <PlaceImg
-                    place={booking?.place}
-                    className={'h-full w-full object-cover'}
-                  />
-                )}
-              </div>
-              <div className="grow py-3 pr-3">
-                <h2 className="md:text-2xl">{booking?.place?.title}</h2>
-                <div className="md:text-xl">
-                  <div className="flex gap-2 border-t "></div>
-                  <div className="md:text-xl">
-                    <BookingDates
-                      booking={booking}
-                      className="mb-2 mt-4 hidden items-center text-gray-600  md:flex"
-                    />
+      
+      <div className="mt-8">
+        <h1 className="text-3xl font-bold mb-6">My Bookings</h1>
 
-                    <div className="my-2 flex items-center gap-1">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        strokeWidth={1.5}
-                        stroke="currentColor"
-                        className="h-7 w-7"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 002.25-2.25V6.75A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25v10.5A2.25 2.25 0 004.5 19.5z"
-                        />
-                      </svg>
-                      <span className="text-xl md:text-2xl">
-                        Total price: ₹{booking.price}
-                      </span>
+        {bookings?.length > 0 ? (
+          <div className="space-y-6">
+            {bookings.map((booking) => {
+              // Handle case where place might have been deleted from DB
+              if (!booking.place) return null;
+
+              const checkIn = new Date(booking.checkIn);
+              const checkOut = new Date(booking.checkOut);
+              const nights = differenceInCalendarDays(checkOut, checkIn);
+              const isPast = new Date() > checkOut;
+
+              return (
+                <div 
+                  key={booking._id} 
+                  className={`relative flex flex-col md:flex-row overflow-hidden rounded-2xl border transition-all hover:shadow-lg
+                    ${isPast ? 'bg-gray-50 border-gray-200 opacity-75' : 'bg-white border-gray-300'}
+                  `}
+                >
+                  {/* Cancel Button */}
+                  {!isPast && (
+                    <button
+                      onClick={(e) => handleCancel(e, booking._id)}
+                      className="absolute top-3 right-3 z-10 p-2 bg-white/80 hover:bg-red-50 text-gray-500 hover:text-red-600 rounded-full backdrop-blur-sm transition-colors border border-transparent hover:border-red-200 shadow-sm"
+                      title="Cancel Booking"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  )}
+
+                  {/* Image Section */}
+                  <Link to={`/place/${booking.place._id}`} className="w-full md:w-64 h-48 md:h-auto shrink-0 bg-gray-200">
+                    <PlaceImg 
+                      place={booking.place} 
+                      className="w-full h-full object-cover" 
+                    />
+                  </Link>
+
+                  {/* Details Section */}
+                  <Link to={`/account/bookings/${booking._id}`} className="flex-grow p-5 flex flex-col justify-between">
+                    <div>
+                      <div className="flex justify-between items-start pr-8">
+                        <h2 className="text-xl font-bold text-gray-900 line-clamp-1">{booking.place.title}</h2>
+                        {isPast && (
+                          <span className="text-xs font-bold bg-gray-200 text-gray-600 px-2 py-1 rounded uppercase tracking-wider">
+                            Completed
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2 text-gray-500 text-sm mt-1">
+                        <MapPin className="w-4 h-4" />
+                        <span className="line-clamp-1">{booking.place.address}</span>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-4 mt-4 text-gray-700">
+                        <div className="flex items-center gap-2 bg-gray-100 px-3 py-1.5 rounded-lg">
+                          <Calendar className="w-4 h-4" />
+                          <span className="text-sm font-medium">
+                            {format(checkIn, 'MMM d')} <ArrowRight className="w-3 h-3 inline mx-1"/> {format(checkOut, 'MMM d, yyyy')}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 bg-gray-100 px-3 py-1.5 rounded-lg">
+                           <Moon className="w-4 h-4" />
+                           <span className="text-sm font-medium">{nights} Night{nights !== 1 && 's'}</span>
+                        </div>
+                      </div>
                     </div>
-                  </div>
+
+                    <div className="mt-4 pt-4 border-t border-gray-100 flex items-center gap-2">
+                       <div className="p-1.5 bg-green-100 text-green-700 rounded-md">
+                          <CreditCard className="w-5 h-5" />
+                       </div>
+                       <div>
+                          <span className="text-xs text-gray-500 block uppercase font-bold tracking-wide">Total Price</span>
+                          <span className="text-lg font-bold text-gray-900">₹{booking.price.toLocaleString()}</span>
+                       </div>
+                    </div>
+                  </Link>
                 </div>
-              </div>
-              <button
-                onClick={(e) => handleCancel(e, booking._id)}
-                className="absolute right-3 top-3 rounded-full bg-red-500 p-2 text-white hover:bg-red-600"
-                title="Cancel booking"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="h-4 w-4">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </Link>
-          ))
+              );
+            })}
+          </div>
         ) : (
-          <div className="">
-            <div className="flex flex-col justify-start">
-              <h1 className="my-6 text-3xl font-semibold">Trips</h1>
-              <hr className="border border-gray-300" />
-              <h3 className="pt-6 text-2xl font-semibold">
-                No trips booked... yet!
-              </h3>
-              <p>
-                Time to dust off you bags and start planning your next adventure
-              </p>
-              <Link to="/" className="my-4">
-                <div className="flex w-40 justify-center rounded-lg border border-black p-3 text-lg font-semibold hover:bg-gray-50">
-                  Start Searching
-                </div>
-              </Link>
+          /* Empty State */
+          <div className="flex flex-col items-center justify-center py-16 text-center bg-gray-50 rounded-3xl border border-dashed border-gray-300">
+            <div className="bg-white p-4 rounded-full shadow-sm mb-4">
+              <AlertCircle className="w-10 h-10 text-gray-400" />
             </div>
+            <h3 className="text-xl font-bold text-gray-900">No trips booked... yet!</h3>
+            <p className="text-gray-500 mt-2 max-w-xs mx-auto">
+              Time to dust off your bags and start planning your next adventure.
+            </p>
+            <Link 
+              to="/" 
+              className="mt-6 px-8 py-3 bg-black text-white rounded-full font-semibold hover:bg-gray-800 transition-transform hover:scale-105 shadow-lg"
+            >
+              Start Exploring
+            </Link>
           </div>
         )}
       </div>

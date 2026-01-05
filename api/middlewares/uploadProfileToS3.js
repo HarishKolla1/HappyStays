@@ -4,7 +4,7 @@ const multer = require('multer');
 const multerS3 = require('multer-s3');
 const { S3Client } = require('@aws-sdk/client-s3');
 
-if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
+if (!process.env.AWS_ACCESS_KEY || !process.env.AWS_SECRET_KEY) {
   console.error("FATAL ERROR: AWS Keys are missing from process.env!");
 }
 
